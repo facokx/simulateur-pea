@@ -61,6 +61,49 @@ def actualites(requete, n=8):
             for e in flux.entries[:n]]
 
 
+STOOQ_SUFFIXES = {".PA": ".fr", ".DE": ".de", ".AS": ".nl", ".BR": ".be", ".MI": ".it",
+                  ".MC": ".es", ".LS": ".pt", ".HE": ".fi", ".VI": ".at", ".IR": ".ie"}
+
+
+def stooq_historique(ticker):
+    """Source de secours gratuite (Stooq) : clôtures hebdomadaires sur 1 an."""
+    import csv, io, urllib.request
+    base, _, suf = ticker.upper().rpartition(".")
+    sym = (base + STOOQ_SUFFIXES.get("." + suf, "")).lower() if base else ticker.lower()
+    url = "https://stooq.com/q/d/l/?s={}&i=w".format(sym)
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        txt = urllib.request.urlopen(req, timeout=15).read().decode("utf-8", "ignore")
+        rows = list(csv.DictReader(io.StringIO(txt)))
+        rows = [r for r in rows if r.get("Close")][-53:]
+        return [{"d": r["Date"], "c": round(float(r["Close"]), 2)} for r in rows]
+    except Exception:
+        return []
+
+
+@app.route("/api/diag")
+def diag():
+    """Page de test : indique quelles sources répondent depuis le serveur."""
+    res = {}
+    try:
+        h = yf.Ticker("TTE.PA").history(period="5d")
+        res["yahoo_cours"] = "ok ({} lignes)".format(len(h)) if len(h) else "vide (probablement bloqué)"
+    except Exception as e:
+        res["yahoo_cours"] = "erreur : " + str(e)[:150]
+    try:
+        i = yf.Ticker("TTE.PA").info
+        res["yahoo_fiche"] = "ok" if i.get("sector") else "vide"
+    except Exception as e:
+        res["yahoo_fiche"] = "erreur : " + str(e)[:150]
+    res["stooq"] = "ok ({} semaines)".format(len(stooq_historique("TTE.PA"))) or "vide"
+    try:
+        res["google_actus"] = "ok ({} articles)".format(len(actualites("TotalEnergies", 3)))
+    except Exception as e:
+        res["google_actus"] = "erreur : " + str(e)[:150]
+    res["heure_serveur"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    return jsonify(res)
+
+
 @app.route("/")
 def index():
     return send_from_directory(".", "index.html")
@@ -82,10 +125,13 @@ def recherche():
 @app.route("/api/societe/<ticker>")
 def societe(ticker):
     t = yf.Ticker(ticker)
+    sources = {}
     try:
         info = t.info or {}
+        sources["yahoo_info"] = "ok" if info.get("regularMarketPrice") or info.get("currentPrice") else "vide"
     except Exception as e:
-        return jsonify({"erreur": "Données introuvables : " + str(e)}), 502
+        info = {}
+        sources["yahoo_info"] = "bloqué : " + str(e)[:120]
 
     nom = info.get("longName") or info.get("shortName") or ticker
     pays = info.get("country")
@@ -98,6 +144,18 @@ def societe(ticker):
         hist = [{"d": i.strftime("%Y-%m-%d"), "c": round(float(c), 2)} for i, c in h["Close"].items()]
     except Exception:
         pass
+    if not hist:
+        hist = stooq_historique(ticker)
+        sources["historique"] = "stooq" if hist else "indisponible"
+    else:
+        sources["historique"] = "yahoo"
+    if not (info.get("currentPrice") or info.get("regularMarketPrice")) and hist:
+        info["regularMarketPrice"] = hist[-1]["c"]
+        if len(hist) > 1:
+            info["regularMarketChangePercent"] = (hist[-1]["c"] / hist[-2]["c"] - 1) * 100
+        info.setdefault("fiftyTwoWeekHigh", max(x["c"] for x in hist))
+        info.setdefault("fiftyTwoWeekLow", min(x["c"] for x in hist))
+        sources["cours"] = "stooq (clôture)"
 
     # Dividendes versés (5 ans) -> calendrier habituel
     divs = []
@@ -177,6 +235,7 @@ def societe(ticker):
         "actus": news_societe,
         "actus_geo": news_geo,
         "actus_env": news_env,
+        "sources": sources,
         "maj": datetime.now().strftime("%d/%m/%Y %H:%M"),
     }
     return jsonify(data)

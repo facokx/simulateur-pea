@@ -73,7 +73,7 @@ async function api(u){const r=await fetch(u);const j=await r.json();if(!r.ok)thr
 
 async function charger(tk){
   $('#sugg').hidden=true;$('#status').textContent=`Chargement de ${tk}…`;
-  try{const d=await api('/api/societe/'+encodeURIComponent(tk));render(d);$('#status').textContent=`Mis à jour le ${d.maj}`}
+  try{const d=await api('/api/societe/'+encodeURIComponent(tk));render(d);$('#status').textContent=`Mis à jour le ${d.maj}`+(d.sources?' · sources : '+Object.entries(d.sources).map(([k,v])=>k+' '+v).join(', '):'')}
   catch(e){$('#status').textContent='Impossible de charger '+tk+' : '+e.message}
 }
 
