@@ -1,0 +1,19 @@
+SIMULATEUR PEA - 100 % gratuit
+1. Installez Python (gratuit) : https://www.python.org/downloads/  (Windows : cochez "Add Python to PATH")
+2. Double-cliquez sur lancer_windows.bat (Windows) ou lancer_mac.command (Mac).
+3. La page s'ouvre sur http://127.0.0.1:5000 . Laissez la fenêtre noire ouverte pendant l'utilisation.
+Sources : Yahoo Finance (cours, dividendes, agenda, comptes) et Google Actualités (actualités, géopolitique, climat).
+
+SUR VOTRE TÉLÉPHONE
+A) À la maison (gratuit, le plus simple)
+   - Lancez le simulateur sur l'ordinateur : la fenêtre noire affiche une adresse du type http://192.168.1.25:5000
+   - Sur le téléphone connecté au MÊME Wi-Fi, tapez cette adresse dans le navigateur.
+   - Windows peut demander d'autoriser Python dans le pare-feu : acceptez (réseau privé).
+   - Ajoutez-la à l'écran d'accueil : iPhone (Safari) Partager > "Sur l'écran d'accueil" ; Android (Chrome) menu > "Ajouter à l'écran d'accueil".
+
+B) Partout, même hors de chez vous (gratuit, ordinateur éteint)
+   1. Créez un compte gratuit sur https://github.com et déposez-y ce dossier (bouton "Add file > Upload files").
+   2. Créez un compte gratuit sur https://render.com , puis "New > Blueprint" et choisissez votre dépôt GitHub.
+   3. Render donne une adresse https://simulateur-pea-xxxx.onrender.com à ouvrir sur le téléphone.
+   Offre gratuite : le site se met en veille après 15 min sans visite, le premier chargement prend alors ~50 secondes.
+   Le portefeuille virtuel est propre à chaque appareil (téléphone et ordinateur ont chacun le leur).

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulateur PEA</title>
+<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#0f6b52">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="PEA">
+<link rel="apple-touch-icon" href="/icone.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#f3f5f4;--panel:#fff;--fg:#17201d;--muted:#5b6a64;--line:#d9e0dc;--accent:#0f6b52;--up:#127a3f;--down:#b3261e;
+--display:"Fraunces",Georgia,serif;--body:"IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1513;--panel:#17201d;--fg:#e4ebe7;--muted:#93a39c;--line:#2a3631;--accent:#4fc39c;--up:#5bd18a;--down:#ff8a80;color-scheme:dark}}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55;padding:max(20px,env(safe-area-inset-top)) 16px 40px}
+@media(max-width:860px){aside{position:static;order:-1}.head h2{font-size:1.35rem}.price{font-size:1.3rem}}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:18px}
+h1{font-family:var(--display);font-size:2rem;margin:0}
+.sub{color:var(--muted);margin:2px 0 0}
+.search{display:flex;gap:8px;flex-wrap:wrap;position:relative}
+.search input{flex:1 1 260px;font:inherit;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg)}
+#sugg{position:absolute;top:100%;left:0;right:0;z-index:5;background:var(--panel);border:1px solid var(--line);border-radius:8px;margin-top:4px}
+#sugg div{padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:10px}#sugg div:hover{background:var(--bg)}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:10px 14px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--bg);font-weight:600}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chips button{padding:5px 10px;font-size:.82rem;font-family:var(--mono)}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
+@media(max-width:860px){.main{grid-template-columns:1fr}}
+.sheet{display:grid;gap:14px;min-width:0}
+.head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;border-bottom:2px solid var(--fg);padding-bottom:12px}
+.head h2{font-family:var(--display);font-size:1.7rem;margin:0}
+.tag{font-family:var(--mono);font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.price{font-family:var(--mono);font-size:1.6rem;text-align:right;font-variant-numeric:tabular-nums}
+.pill{font-family:var(--mono);font-size:.75rem;padding:2px 8px;border-radius:99px;border:1px solid currentColor}
+.ok{color:var(--up)}.no{color:var(--down)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.box h3{margin:0 0 8px;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.box ul{margin:0;padding-left:18px}.box li{margin:4px 0}.box a{color:var(--fg)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-variant-numeric:tabular-nums}
+.kv span:nth-child(odd){color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}td,th{text-align:left;padding:5px 4px;border-bottom:1px solid var(--line)}
+.bars{display:flex;gap:4px;align-items:flex-end;height:90px}.bars div{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:3px}
+.blab{display:flex;gap:4px;font-family:var(--mono);font-size:.62rem;color:var(--muted)}.blab span{flex:1;text-align:center}
+svg{width:100%;height:120px;display:block}
+.note{font-size:.82rem;color:var(--muted)}.status{font-family:var(--mono);font-size:.85rem;color:var(--muted)}
+.clamp{max-height:9em;overflow:auto}
+aside{position:sticky;top:10px}aside .box{display:grid;gap:10px}
+.row{display:flex;justify-content:space-between;gap:8px;font-variant-numeric:tabular-nums}
+</style></head><body>
+<div class="wrap">
+<header><h1>Simulateur PEA</h1><p class="sub">Cours, actualités, agenda, dividendes et contexte géopolitique des sociétés européennes — données Yahoo Finance et Google Actualités.</p></header>
+<form class="search" id="f" autocomplete="off"><input id="q" placeholder="Nom ou ticker : TotalEnergies, TTE.PA, Airbus…"><button class="primary">Analyser</button><div id="sugg" hidden></div></form>
+<div class="chips" id="chips"></div><div class="status" id="status">Choisissez une société pour commencer.</div>
+<div class="main"><section class="sheet" id="sheet"></section>
+<aside><div class="box"><h3>Mon PEA virtuel</h3>
+<div class="row"><span>Liquidités</span><b id="cash"></b></div>
+<div class="row"><span>Versements (plafond 150 000 €)</span><b id="dep"></b></div>
+<div id="pos"></div><div class="row"><span>Valeur totale</span><b id="tot"></b></div>
+<div class="row"><button id="refresh" type="button">Actualiser les cours</button><button id="reset" type="button">Réinitialiser</button></div>
+<p class="note">Frais simulés 0,5 % par ordre. Portefeuille enregistré dans ce navigateur.</p></div></aside></div>
+<p class="note">Données fournies à titre informatif, avec un léger différé possible. Ceci n'est pas un conseil en investissement.</p>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const eur=n=>(n??0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
+const num=(n,d=2)=>n==null?'—':Number(n).toLocaleString('fr-FR',{maximumFractionDigits:d});
+const big=n=>n==null?'—':n>=1e9?num(n/1e9,1)+' Md':n>=1e6?num(n/1e6,1)+' M':num(n,0);
+const pct=n=>n==null?'—':(n>0?'+':'')+num(n,2)+' %';
+const MOIS=['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+const EX={"TotalEnergies":"TTE.PA","Airbus":"AIR.PA","LVMH":"MC.PA","Schneider":"SU.PA","ASML":"ASML.AS","Air Liquide":"AI.PA","Sanofi":"SAN.PA","Engie":"ENGI.PA","Veolia":"VIE.PA","Stellantis":"STLAP.PA","SAP":"SAP.DE","Siemens":"SIE.DE"};
+let cur=null;
+
+async function api(u){const r=await fetch(u);const j=await r.json();if(!r.ok)throw new Error(j.erreur||r.status);return j}
+
+async function charger(tk){
+  $('#sugg').hidden=true;$('#status').textContent=`Chargement de ${tk}…`;
+  try{const d=await api('/api/societe/'+encodeURIComponent(tk));render(d);$('#status').textContent=`Mis à jour le ${d.maj}`}
+  catch(e){$('#status').textContent='Impossible de charger '+tk+' : '+e.message}
+}
+
+function courbe(h){
+  if(h.length<2)return'<p class="note">Historique indisponible.</p>';
+  const v=h.map(x=>x.c),mn=Math.min(...v),mx=Math.max(...v),W=600,H=110;
+  const pts=v.map((c,i)=>`${(i/(v.length-1)*W).toFixed(1)},${(H-5-(c-mn)/(mx-mn||1)*(H-10)).toFixed(1)}`).join(' ');
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2"/></svg>
+  <div class="row note"><span>${h[0].d}</span><span>min ${num(mn)} · max ${num(mx)}</span><span>${h.at(-1).d}</span></div>`;
+}
+function saison(t){
+  if(!t.length)return'<p class="note">Chiffre d\'affaires trimestriel non publié par la source.</p>';
+  const mx=Math.max(...t.map(x=>x.ca));
+  return `<div class="bars">${t.map(x=>`<div style="height:${x.ca/mx*100}%" title="${big(x.ca)}"></div>`).join('')}</div>
+  <div class="blab">${t.map(x=>`<span>${x.trimestre}</span>`).join('')}</div>
+  <p class="note">Chiffre d'affaires par trimestre : un trimestre régulièrement plus haut révèle la saison forte.</p>`;
+}
+function moisDiv(d){const m=[...new Set(d.map(x=>MOIS[+x.date.slice(5,7)-1]))];return m.length?'Versements habituels en '+m.join(', '):''}
+const liens=a=>a.length?`<ul>${a.map(x=>`<li><a href="${esc(x.lien)}" target="_blank" rel="noopener">${esc(x.titre)}</a> <span class="note">${esc((x.date||'').slice(5,16))}</span></li>`).join('')}</ul>`:'<p class="note">Aucune actualité trouvée.</p>';
+
+function render(d){
+  cur=d;const v=d.variation_jour;
+  $('#sheet').innerHTML=`
+  <div class="head"><div><div class="tag">${esc(d.ticker)} · ${esc(d.bourse)} · ${esc(d.pays)}</div><h2>${esc(d.nom)}</h2>
+  <span class="pill ${d.pea.eligible?'ok':'no'}">${d.pea.eligible?'Éligible PEA':'Non éligible PEA'}</span> <span class="note">${esc(d.pea.raison)}</span></div>
+  <div><div class="price">${num(d.cours)} ${esc(d.devise)}</div><div class="note ${v>=0?'ok':'no'}" style="text-align:right">${pct(v)} aujourd'hui</div></div></div>
+  <div class="box"><h3>Cours sur 1 an</h3>${courbe(d.historique)}
+   <div class="row" style="margin-top:8px;flex-wrap:wrap"><span>
+   <input id="qty" type="number" min="1" value="10" style="width:80px;font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)" aria-label="Quantité">
+   <button class="primary" id="buy" type="button">Acheter</button> <button id="sell" type="button">Vendre</button></span></div></div>
+  <div class="grid">
+   <div class="box"><h3>Activité</h3><p><b>${esc(d.secteur)}</b> — ${esc(d.industrie)}</p><div class="clamp note">${esc(d.activite)}</div></div>
+   <div class="box"><h3>Chiffres clés</h3><div class="kv">
+    <span>Capitalisation</span><span>${big(d.capitalisation)} ${esc(d.devise)}</span><span>PER</span><span>${num(d.per,1)}</span>
+    <span>Plus haut 52 sem.</span><span>${num(d.plus_haut_52s)}</span><span>Plus bas 52 sem.</span><span>${num(d.plus_bas_52s)}</span>
+    <span>Croissance du CA</span><span>${d.croissance_ca==null?'—':pct(d.croissance_ca*100)}</span><span>Salariés</span><span>${num(d.salaries,0)}</span></div></div>
+   <div class="box"><h3>Demande et saisonnalité</h3>${saison(d.trimestres)}</div>
+   <div class="box"><h3>Agenda à venir</h3>${d.agenda.length?`<table>${d.agenda.map(x=>`<tr><td class="tag">${esc(x.date)}</td><td>${esc(x.evenement)}</td></tr>`).join('')}</table>`:'<p class="note">Aucune date annoncée.</p>'}</div>
+   <div class="box"><h3>Dividendes</h3><div class="kv"><span>Rendement</span><span>${d.rendement==null?'—':num(d.rendement,2)+' %'}</span><span>Dividende annuel</span><span>${num(d.dividende_annuel)} ${esc(d.devise)}</span></div>
+    <p class="note">${moisDiv(d.dividendes)}</p>
+    <table>${d.dividendes.slice(-6).reverse().map(x=>`<tr><td>${x.date}</td><td>${num(x.montant,3)}</td></tr>`).join('')}</table></div>
+   <div class="box"><h3>Actualités du groupe</h3>${liens(d.actus)}</div>
+   <div class="box"><h3>Géopolitique du secteur</h3>${liens(d.actus_geo)}</div>
+   <div class="box"><h3>Environnement et climat</h3>${liens(d.actus_env)}</div>
+  </div>`;
+  $('#buy').onclick=()=>trade(1);$('#sell').onclick=()=>trade(-1);
+}
+
+// Recherche avec suggestions
+let tmr;$('#q').oninput=()=>{clearTimeout(tmr);const q=$('#q').value.trim();if(q.length<2){$('#sugg').hidden=true;return}
+ tmr=setTimeout(async()=>{try{const r=await api('/api/recherche?q='+encodeURIComponent(q));
+ $('#sugg').innerHTML=r.map(x=>`<div data-t="${esc(x.ticker)}"><span>${esc(x.nom)}</span><span class="tag">${esc(x.ticker)} · ${esc(x.bourse)}</span></div>`).join('');$('#sugg').hidden=!r.length}catch{}},300)};
+$('#sugg').onclick=e=>{const t=e.target.closest('[data-t]');if(t)charger(t.dataset.t)};
+$('#f').onsubmit=async e=>{e.preventDefault();const q=$('#q').value.trim();if(!q)return;
+ if(/^[A-Z0-9.\-]+$/.test(q))return charger(q);
+ try{const r=await api('/api/recherche?q='+encodeURIComponent(q));const pref=r.find(x=>/Paris|Amsterdam|XETRA|Milan|Brussels|Madrid/.test(x.bourse))||r[0];
+ pref?charger(pref.ticker):($('#status').textContent='Aucune société trouvée.')}catch(e){$('#status').textContent='Recherche impossible : '+e.message}};
+$('#chips').innerHTML=Object.keys(EX).map(n=>`<button type="button" data-t="${EX[n]}">${n}</button>`).join('');
+$('#chips').onclick=e=>{if(e.target.dataset.t)charger(e.target.dataset.t)};
+
+// PEA virtuel
+let pf;try{pf=JSON.parse(localStorage.getItem('pea'))}catch{}if(!pf)pf={cash:10000,dep:10000,pos:{}};
+const save=()=>{try{localStorage.setItem('pea',JSON.stringify(pf))}catch{}};
+function trade(dir){
+ if(!cur?.cours)return;if(dir>0&&!cur.pea.eligible){$('#status').textContent='Achat refusé : titre non éligible au PEA.';return}
+ if(cur.devise!=='EUR'&&dir>0){$('#status').textContent='Note : cours en '+cur.devise+', traité 1:1 en euros dans la simulation.'}
+ const q=Math.max(1,parseInt($('#qty').value)||1),p=cur.cours,amt=q*p,fee=amt*.005,k=cur.ticker;
+ const s=pf.pos[k]||{qty:0,pru:0,last:p};
+ if(dir>0){if(amt+fee>pf.cash){$('#status').textContent='Liquidités insuffisantes.';return}s.pru=(s.pru*s.qty+amt+fee)/(s.qty+q);s.qty+=q;pf.cash-=amt+fee}
+ else{if(s.qty<q){$('#status').textContent='Quantité détenue insuffisante.';return}s.qty-=q;pf.cash+=amt-fee}
+ s.last=p;pf.pos[k]=s;if(!s.qty)delete pf.pos[k];save();draw();$('#status').textContent=`${dir>0?'Achat':'Vente'} de ${q} ${k} à ${num(p)} enregistré.`;
+}
+function draw(){$('#cash').textContent=eur(pf.cash);$('#dep').textContent=eur(pf.dep);let t=pf.cash;
+ $('#pos').innerHTML=Object.entries(pf.pos).map(([k,s])=>{const v=s.qty*s.last;t+=v;const g=(s.last/s.pru-1)*100;
+ return`<div class="row"><a href="#" data-t="${esc(k)}" style="color:var(--fg)">${esc(k)} ×${s.qty}</a><span>${eur(v)} <span class="${g>=0?'ok':'no'}">${pct(g)}</span></span></div>`}).join('')||'<p class="note">Aucune position.</p>';
+ $('#tot').textContent=eur(t)}
+$('#pos').onclick=e=>{const t=e.target.dataset.t;if(t){e.preventDefault();charger(t)}};
+$('#refresh').onclick=async()=>{for(const k of Object.keys(pf.pos)){try{const d=await api('/api/societe/'+k);pf.pos[k].last=d.cours}catch{}}save();draw()};
+$('#reset').onclick=()=>{pf={cash:10000,dep:10000,pos:{}};save();draw()};
+draw();
+</script></body></html>

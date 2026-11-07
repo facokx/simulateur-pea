@@ -1,0 +1,1 @@
+{"name": "Simulateur PEA", "short_name": "PEA", "start_url": "/", "display": "standalone", "background_color": "#0f1513", "theme_color": "#0f6b52", "icons": [{"src": "/icone.png", "sizes": "512x512", "type": "image/png"}]}
